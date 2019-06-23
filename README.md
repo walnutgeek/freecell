@@ -1,4 +1,23 @@
-# Microsoft Shuffle Algorithm
+# FREECELL
+
+Curing my addiction to freecell, by solving them all.
+
+## Run
+```
+python -m freecell.game 169 > solution.txt
+```
+## Inspirations
+
+### Raymond Hettinger talk on US Pycon 2019
+
+[Slides](https://rhettinger.github.io/index.html)
+
+[Video](https://www.youtube.com/watch?v=_GP9OpZPUYc)
+
+Breadth-first search was not be able to cut it because because search space become too big at the end of te game. Sightly modified to add heuristic.
+
+
+### Microsoft Shuffle Algorithm
 
 Ported from leagcy python sourced form: 
 [rosettacode.org: Deal cards for FreeCell](https://rosettacode.org/wiki/Deal_cards_for_FreeCell#Python)
