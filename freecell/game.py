@@ -37,7 +37,8 @@ class Position:
         self.free_cells = tuple(sorted(free_cells, key=lambda x: (x is None, x)))
         self.home_cells = home_cells
         self._repr = f"Position({tuple(sorted(self.tableau))!r}, {self.free_cells!r}, {self.home_cells!r})"
-        value = sum(len(c) for c in self.tableau) + sum(1.1 for _ in filter(None.__ne__, self.free_cells))
+
+        value = sum(len(c) for c in self.tableau) + sum(2 for _ in filter(None.__ne__, self.free_cells)) 
         self._key = (value, self._repr)
 
     @staticmethod
@@ -58,14 +59,14 @@ class Position:
         """
         return self.free_cells[-1] is None
 
-    def home_move(self, card: Card) -> Tuple[Optional[Card]]:
+    def move_to_home(self, card: Card) -> Tuple[Optional[Card]]:
         suit = card.suit()
         home = self.home_cells[suit]
         home_rank = -1 if home is None else home.rank()
         if card.rank() - 1 == home_rank:
             return tuple_set(self.home_cells, suit, card)
 
-    def tabcolumn_move(self, card: Card, column:int) -> Tuple[Card]:
+    def move_to_tableau(self, card: Card, column:int) -> Tuple[Card]:
         tabcolumn = self.tableau[column]
         if tabcolumn:
             last_card = tabcolumn[-1]
@@ -142,14 +143,14 @@ class Position:
         for i in range(4):
             c = p.free_cells[i]
             if c is not None:
-                new_home = p.home_move(c)
+                new_home = p.move_to_home(c)
                 if new_home is not None:
                     yield Position(p.tableau, tuple_set(p.free_cells, i, None), new_home)
         #tableau -> home_cells (8)
         for i in range(8):
             if p.tableau[i]:
                 c = p.tableau[i][-1]
-                new_home = p.home_move(c)
+                new_home = p.move_to_home(c)
                 if new_home is not None:
                     yield Position(tuple_set(p.tableau, i, p.tableau[i][:-1]), p.free_cells, new_home)
         #tableau -> free_cells (8)
@@ -164,7 +165,7 @@ class Position:
             card = p.free_cells[cell]
             if card is not None:
                 for col in range(8):
-                    tabcolumn = p.tabcolumn_move(card, col)
+                    tabcolumn = p.move_to_tableau(card, col)
                     if tabcolumn is not None:
                         yield Position(tuple_set(p.tableau, col, tabcolumn), 
                         tuple_set(p.free_cells, cell, None), p.home_cells)
@@ -174,7 +175,7 @@ class Position:
             for to_col in range(8):
                 if from_col != to_col and p.tableau[from_col]:
                     card = p.tableau[from_col][-1]
-                    tabcolumn = p.tabcolumn_move(card, to_col)
+                    tabcolumn = p.move_to_tableau(card, to_col)
                     if tabcolumn:
                         yield Position(tuple_set(p.tableau, to_col, tabcolumn, from_col, p.tableau[from_col][:-1]),
                             p.free_cells, p.home_cells)
