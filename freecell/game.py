@@ -1,28 +1,39 @@
-from sys import argv
 from functools import total_ordering
-from freecell import Card, opt_to_str, DECK_SIZE
-from freecell.puzzle import solve
-import freecell.shuffle as shuffle
-from typing import Tuple, Optional, Any
+from sys import argv
+from typing import Any, Optional, Tuple
 
-def tuple_set(elems:Tuple[Any], i:int, v:Any, i2:Optional[int]=None, v2:Any=None)->Tuple[Any]:
+import freecell.shuffle as shuffle
+from freecell import DECK_SIZE, Card, opt_to_str
+from freecell.puzzle import solve
+
+
+def tuple_set(
+    elems: Tuple[Any], i: int, v: Any, i2: Optional[int] = None, v2: Any = None
+) -> Tuple[Any]:
     stage = list(elems)
     stage[i] = v
     if i2 is not None:
         stage[i2] = v2
     return tuple(stage)
 
+
+def wrong_order(c: Tuple[Card], i: int):
+    diff = c[i].rank() - c[i + 1].rank()
+    return diff if diff > 0 else 0
+
+
 @total_ordering
 class Position:
     tableau: Tuple[Tuple[Card]]
-    free_cells: Tuple[Optional[Card]] 
-    home_cells: Tuple[Optional[Card]] 
+    free_cells: Tuple[Optional[Card]]
+    home_cells: Tuple[Optional[Card]]
 
-
-
-    def __init__(self, tableau: Tuple[Tuple[Card]], 
-                 free_cells: Tuple[Optional[Card]], 
-                 home_cells: Tuple[Optional[Card]]):
+    def __init__(
+        self,
+        tableau: Tuple[Tuple[Card]],
+        free_cells: Tuple[Optional[Card]],
+        home_cells: Tuple[Optional[Card]],
+    ):
         """    
         >>> Position(((),(),(),(),(),(),(),()), (None,None,None,Card(0)), (None,None,None,None))
         Position(((), (), (), (), (), (), (), ()), (Card(0), None, None, None), (None, None, None, None))
@@ -32,23 +43,43 @@ class Position:
         """
         assert len(tableau) == 8
         assert len(free_cells) == 4
-        assert len(home_cells) == 4        
+        assert len(home_cells) == 4
         self.tableau = tableau
         self.free_cells = tuple(sorted(free_cells, key=lambda x: (x is None, x)))
         self.home_cells = home_cells
         self._repr = f"Position({tuple(sorted(self.tableau))!r}, {self.free_cells!r}, {self.home_cells!r})"
+        rank_home_cells = min(
+            -1 if card is None else card.rank() for card in self.home_cells
+        )
+        full_free_cells = sum(1 for _ in filter(None.__ne__, self.free_cells))
+        num_of_cards_in_tableau = sum(len(c) for c in self.tableau)
+        # empty_tableau_columns = sum( 0 if c else 1 for c in self.tableau)
+        # empty_home_cells = sum(1 for _ in filter(None.__eq__, self.home_cells))
+        # against_grain_tableau_score = sum(
+        #     sum( wrong_order(c,i) for i in range(len(c)-1))
+        #     for c in self.tableau if len(c) > 1 )
+        value = sum(
+            (
+                1.0 * num_of_cards_in_tableau,
+                -1.0 * rank_home_cells,
+                0.5 * full_free_cells,
+                # 0 * empty_home_cells,
+                # 0 * against_grain_tableau_score,
+                # 0 * empty_tableau_columns,
+            )
+        )
 
-        value = sum(len(c) for c in self.tableau) + sum(2 for _ in filter(None.__ne__, self.free_cells)) 
         self._key = (value, self._repr)
 
     @staticmethod
-    def deal(seed:int)->"Position":
+    def deal(seed: int) -> "Position":
         cards = shuffle.deal(seed)
         end = len(cards)
-        return Position( 
-            tuple( tuple( cards[i] for i in range(start, end, 8)) for start in range(8)),
-            (None,None,None,None),
-            (None,None,None,None))
+        return Position(
+            tuple(tuple(cards[i] for i in range(start, end, 8)) for start in range(8)),
+            (None, None, None, None),
+            (None, None, None, None),
+        )
 
     def has_free_cell(self):
         """
@@ -66,15 +97,13 @@ class Position:
         if card.rank() - 1 == home_rank:
             return tuple_set(self.home_cells, suit, card)
 
-    def move_to_tableau(self, card: Card, column:int) -> Tuple[Card]:
+    def move_to_tableau(self, card: Card, column: int) -> Tuple[Card]:
         tabcolumn = self.tableau[column]
         if tabcolumn:
             last_card = tabcolumn[-1]
             if last_card.color() == card.color() or last_card.rank() - 1 != card.rank():
                 return None
         return tabcolumn + (card,)
-
-    
 
     def __repr__(self):
         """
@@ -91,16 +120,16 @@ class Position:
         """
         return self._repr
 
-    def canonical(self):        # returns a string representation after adjusting for symmetry
+    def canonical(self):  # returns a string representation after adjusting for symmetry
         return repr(self)
 
-    def __lt__(self,other):
+    def __lt__(self, other):
         return self._key < other._key
 
-    def __eq__(self,other):
+    def __eq__(self, other):
         return self._key == other._key
 
-    def __ne__(self,other):
+    def __ne__(self, other):
         return self._key != other._key
 
     def __str__(self):
@@ -126,76 +155,104 @@ class Position:
          6C KC TD TH AC 2S 3H QS
          KS 3D QC 9D
         """
-        s = "".join( opt_to_str(c) for c in self.free_cells) + "     "
-        s += "".join( opt_to_str(c) for c in self.home_cells) + "\n\n"
+        s = "".join(opt_to_str(c) for c in self.free_cells) + "     "
+        s += "".join(opt_to_str(c) for c in self.home_cells) + "\n\n"
         empty = False
         row = 0
         while not empty:
-            data = tuple( self.tableau[col][row] if row < len(self.tableau[col]) else None for col in range(8))
-            s += "".join(opt_to_str(n,"  ") for n in data) + "\n"
+            data = tuple(
+                self.tableau[col][row] if row < len(self.tableau[col]) else None
+                for col in range(8)
+            )
+            s += "".join(opt_to_str(n, "  ") for n in data) + "\n"
             empty = not any(data)
             row += 1
         return s
 
     def __iter__(self):
-        #free_cells -> home_cells (4)
-        p:Position = self
+        # free_cells -> home_cells (4)
+        p: Position = self
         for i in range(4):
             c = p.free_cells[i]
             if c is not None:
                 new_home = p.move_to_home(c)
                 if new_home is not None:
-                    yield Position(p.tableau, tuple_set(p.free_cells, i, None), new_home)
-        #tableau -> home_cells (8)
+                    yield Position(
+                        p.tableau, tuple_set(p.free_cells, i, None), new_home
+                    )
+        # tableau -> home_cells (8)
         for i in range(8):
             if p.tableau[i]:
                 c = p.tableau[i][-1]
                 new_home = p.move_to_home(c)
                 if new_home is not None:
-                    yield Position(tuple_set(p.tableau, i, p.tableau[i][:-1]), p.free_cells, new_home)
-        #tableau -> free_cells (8)
+                    yield Position(
+                        tuple_set(p.tableau, i, p.tableau[i][:-1]),
+                        p.free_cells,
+                        new_home,
+                    )
+        # tableau -> free_cells (8)
         if p.has_free_cell():
             for i in range(8):
                 if p.tableau[i]:
-                    yield Position(tuple_set(p.tableau, i, p.tableau[i][:-1]), 
-                                   tuple_set(p.free_cells, -1, p.tableau[i][-1]), p.home_cells)
+                    yield Position(
+                        tuple_set(p.tableau, i, p.tableau[i][:-1]),
+                        tuple_set(p.free_cells, -1, p.tableau[i][-1]),
+                        p.home_cells,
+                    )
 
-        #free_cells -> tableau (4*8)
+        # free_cells -> tableau (4*8)
         for cell in range(4):
             card = p.free_cells[cell]
             if card is not None:
                 for col in range(8):
                     tabcolumn = p.move_to_tableau(card, col)
                     if tabcolumn is not None:
-                        yield Position(tuple_set(p.tableau, col, tabcolumn), 
-                        tuple_set(p.free_cells, cell, None), p.home_cells)
+                        yield Position(
+                            tuple_set(p.tableau, col, tabcolumn),
+                            tuple_set(p.free_cells, cell, None),
+                            p.home_cells,
+                        )
 
-        #tableau -> tableau (8*7)
+        # tableau -> tableau (8*7)
         for from_col in range(8):
             for to_col in range(8):
                 if from_col != to_col and p.tableau[from_col]:
                     card = p.tableau[from_col][-1]
                     tabcolumn = p.move_to_tableau(card, to_col)
                     if tabcolumn:
-                        yield Position(tuple_set(p.tableau, to_col, tabcolumn, from_col, p.tableau[from_col][:-1]),
-                            p.free_cells, p.home_cells)
+                        yield Position(
+                            tuple_set(
+                                p.tableau,
+                                to_col,
+                                tabcolumn,
+                                from_col,
+                                p.tableau[from_col][:-1],
+                            ),
+                            p.free_cells,
+                            p.home_cells,
+                        )
 
 
-GOAL = Position(((),(),(),(),(),(),(),()), (None,None,None,None), 
-            (Card(48),Card(49),Card(50),Card(51)))
+GOAL = Position(
+    ((), (), (), (), (), (), (), ()),
+    (None, None, None, None),
+    (Card(48), Card(49), Card(50), Card(51)),
+)
 
 
+def solve_seed(seed: int):
+    """
+    >>> [len(solve_seed(seed)) for seed in (169, 225541, 29596)]
+    [116, 195, 185]
+    """
+    return solve(Position.deal(seed), GOAL)
 
 
 if __name__ == "__main__":
-        seed = int(argv[1]) if len(argv) == 2 else 11982
-        solution = solve(Position.deal(seed), GOAL)
-        for step in solution:
-            print(str(step))
-        print(len(solution))
-                
+    seed = int(argv[1]) if len(argv) == 2 else 11982
+    solution = solve_seed(seed)
+    for step in solution:
+        print(str(step))
+    print(len(solution))
 
-        
-    
-    
-        

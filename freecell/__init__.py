@@ -1,13 +1,13 @@
-
 from functools import total_ordering
 from typing import List, Union, Optional
 
 DECK_SIZE = 52
-RED, BLACK =1, -1
+RED, BLACK = 1, -1
 
-RANKS="A23456789TJQK"
-SUITS="CDHS"
+RANKS = "A23456789TJQK"
+SUITS = "CDHS"
 N_SUITS = len(SUITS)
+
 
 @total_ordering
 class Card:
@@ -50,14 +50,15 @@ class Card:
     ...
     ValueError: Not sure what to do with: b'3C'
     """
-    __all_cards__ :List[Union['Card',None]] = [None for _ in range(DECK_SIZE)]
-    idx:int
+
+    __all_cards__: List[Union["Card", None]] = [None for _ in range(DECK_SIZE)]
+    idx: int
 
     def __new__(cls, value):
         if type(value) is cls:
             return value
-        if isinstance(value, str) and len(value)==2:
-            value = RANKS.index(value[0])*N_SUITS + SUITS.index(value[1]) 
+        if isinstance(value, str) and len(value) == 2:
+            value = RANKS.index(value[0]) * N_SUITS + SUITS.index(value[1])
         if isinstance(value, int):
             inst = cls.__all_cards__[value]
             if inst is None:
@@ -65,28 +66,27 @@ class Card:
                 inst.idx = value + DECK_SIZE if value < 0 else value
                 cls.__all_cards__[value] = inst
             return inst
-        raise ValueError(f'Not sure what to do with: {value!r}')
+        raise ValueError(f"Not sure what to do with: {value!r}")
 
     def __lt__(self, other):
         return self.idx < other.idx
 
     def rank(self):
         return self.idx // N_SUITS
-    
+
     def suit(self):
         return self.idx % N_SUITS
 
     def color(self):
-        return RED if self.suit() in (1,2) else BLACK 
+        return RED if self.suit() in (1, 2) else BLACK
 
     def __str__(self):
         return RANKS[self.rank()] + SUITS[self.suit()]
 
     def __repr__(self):
-        return f'Card({self.idx})'
+        return f"Card({self.idx})"
+
 
 def opt_to_str(c: Optional[Card], placeholder="[]"):
     return f" {placeholder if c is None else c} "
 
-
-    

@@ -1,16 +1,17 @@
-''' Generic Puzzle Solving Framework
+""" Generic Puzzle Solving Framework
 
 License:  MIT
 Author:   Raymond Hettinger
 
 It was slightly modified to accomodate heustic and get rid 
 of inheritace.
-'''
+"""
 
-from collections import deque
 import heapq
-from sys import intern
 import re
+from collections import deque
+from sys import intern
+
 
 def solve(pos, goal):
     queue = []
@@ -23,7 +24,7 @@ def solve(pos, goal):
             if c in trail:
                 continue
             trail[intern(c)] = pos
-            heapq.heappush(queue,m)
+            heapq.heappush(queue, m)
         pos = heapq.heappop(queue)
 
     while pos:
