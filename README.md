@@ -44,3 +44,7 @@ Hand 31465
   KS 3D QC 9D
 >
 ```
+
+## Problematic suffles
+
+178, 29596

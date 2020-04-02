@@ -48,7 +48,7 @@ class Position:
         self.free_cells = tuple(sorted(free_cells, key=lambda x: (x is None, x)))
         self.home_cells = home_cells
         self._repr = f"Position({tuple(sorted(self.tableau))!r}, {self.free_cells!r}, {self.home_cells!r})"
-        rank_home_cells = min(
+        min_rank_home_cells = min(
             -1 if card is None else card.rank() for card in self.home_cells
         )
         full_free_cells = sum(1 for _ in filter(None.__ne__, self.free_cells))
@@ -58,11 +58,25 @@ class Position:
         # against_grain_tableau_score = sum(
         #     sum( wrong_order(c,i) for i in range(len(c)-1))
         #     for c in self.tableau if len(c) > 1 )
+        unordered_tableau = 0
+        for column in self.tableau:
+            l = len(column)
+            if l > 1:
+
+                for i in range(l-1):
+                    cur = column[i]
+                    importance = 1 if self.move_to_home(cur) is None else 10
+                    depth = l-i-1
+                    if cur.rank() < column[i+1].rank():
+                        unordered_tableau += 5*depth*importance
+                    # elif cur.rank() == column[i+1].rank():
+                    #     unordered_tableau += depth*importance
         value = sum(
             (
-                1.0 * num_of_cards_in_tableau,
-                -1.0 * rank_home_cells,
+                1 * num_of_cards_in_tableau,
+                -10.0 * min_rank_home_cells,
                 0.5 * full_free_cells,
+                0.00001 * unordered_tableau,
                 # 0 * empty_home_cells,
                 # 0 * against_grain_tableau_score,
                 # 0 * empty_tableau_columns,
